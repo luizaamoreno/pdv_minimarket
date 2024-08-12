@@ -416,7 +416,7 @@ function generateReceipt(orderDetails) {
 
     // Itens do pedido
     doc.setFontSize(10);
-    centerText("CUPOM FISCAL", y);
+    centerText("RESUMO DO PEDIDO", y);
     y += 5;
 
     orderDetails.items.forEach((item) => {
@@ -792,7 +792,7 @@ function viewReceipt(orderNumber) {
 
     // Itens do pedido
     doc.setFontSize(10);
-    centerText("CUPOM FISCAL", y);
+    centerText("RESUMO DO PEDIDO", y);
     y += 5;
 
     order.items.forEach((item) => {
