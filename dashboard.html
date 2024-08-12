@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de PDV</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sistema de PDV</h1>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active">Dashboard</a></li>
+                    <li><a href="inventory.html">Gerenciar Estoque</a></li>
+                    <li><a href="order.html">Pedidos</a></li>
+                </ul>
+            </nav>
+            <button id="logout-button">Sair</button>
+        </header>
+
+        <main role="main">
+            <section id="sales-summary" class="dashboard-section">
+                <h2>Resumo de Vendas</h2>
+                <div id="total-sales"></div>
+                <div id="sales-comparison"></div>
+                <div id="sales-chart"></div>
+            </section>
+
+            <section id="top-products" class="dashboard-section">
+                <h2>Produtos</h2>
+                <div id="top-5-products"></div>
+                <div id="low-stock-products"></div>
+            </section>
+
+            <section id="customer-info" class="dashboard-section">
+                <h2>Clientes</h2>
+                <div id="customers-served"></div>
+                <div id="top-customer"></div>
+            </section>
+
+            <section id="payment-methods" class="dashboard-section">
+                <h2>Métodos de Pagamento</h2>
+                <div id="payment-distribution"></div>
+                <div id="average-purchase"></div>
+            </section>
+
+            <section id="sales-comparison" class="dashboard-section">
+                <h2>Comparativos</h2>
+                <div id="daily-comparison"></div>
+                <div id="monthly-comparison"></div>
+                <div id="sales-goal-progress"></div>
+            </section>
+
+            <section id="alerts" class="dashboard-section">
+                <h2>Alertas</h2>
+                <div id="out-of-stock"></div>
+            </section>
+
+            <section id="predictions" class="dashboard-section">
+                <h2>Previsões</h2>
+                <div id="restock-suggestions"></div>
+            </section>
+        </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="./js/dashboard.js"></script>
+</body>
+</html>

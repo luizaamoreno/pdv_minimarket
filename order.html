@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Pedido - Sistema de PDV</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Criar Pedido - Sistema de PDV</h1>
+            <nav>
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="inventory.html">Gerenciar Estoque</a></li>
+                    <li><a href="#" class="active">Pedidos</a></li>
+                </ul>
+            </nav>
+            <div id="cart-icon">🛒 <span id="cart-badge">0</span></div>
+            <button id="logout-button">Sair</button>
+        </header>
+
+        <button id="view-order-history">Ver Histórico de Pedidos</button>
+
+        <div id="customer-info">
+            <h2>Novo Pedido</h2>
+            <label for="nomeCliente">Nome do Cliente:</label>
+            <input type="text" id="nomeCliente" placeholder="Digite o nome do cliente">
+        </div>
+
+        <main>
+            <div id="category-filter">
+                <label for="category-select">Filtrar por categoria:</label>
+                <select id="category-select">
+                    <option value="">Todas as categorias</option>
+                </select>
+            </div>
+
+            <div id="product-list"></div>
+
+            <div id="cart-menu" style="display: none;">
+                <span id="close-cart">&times;</span>
+                <h2>Carrinho</h2>
+                <div id="cart-items"></div>
+                <div id="cart-subtotal">Subtotal: R$ 0,00</div>
+                <div id="discount-container">
+                    <label for="discount-percentage">Desconto (%):</label>
+                    <input type="number" id="discount-percentage" min="0" max="100" step="1" value="0">
+                    <button id="apply-discount">Aplicar Desconto</button>
+                </div>
+                <div id="cart-total">Total: R$ 0,00</div>
+                <div>
+                    <label for="payment-method">Selecione o método de pagamento:</label>
+                    <select id="payment-method">
+                        <option value="">Selecione...</option>
+                        <option value="credit">Cartão de Crédito</option>
+                        <option value="debit">Cartão de Débito</option>
+                        <option value="pix">PIX</option>
+                        <option value="cash">Dinheiro</option>
+                        <option value="food-voucher">Vale-alimentação</option>
+                    </select>
+                </div>
+                <div id="cash-payment" style="display: none;">
+                    <label for="cash-amount">Valor em dinheiro:</label>
+                    <input type="number" id="cash-amount" min="0" step="0.01">
+                    <div id="change"></div>
+                </div>
+                <button id="finish-payment">Finalizar Pagamento</button>
+                <button id="clear-cart">Limpar Carrinho</button>
+            </div>
+        </main>
+
+        <div id="history-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Histórico de Pedidos</h2>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="search-filter">
+                        <input type="text" id="search-orders" placeholder="Buscar pedidos...">
+                        <input type="date" id="filter-date" title="Filtrar por data">
+                        <select id="filter-orders">
+                            <option value="all">Todos os pedidos</option>
+                            <option value="editable">Pedidos editáveis</option>
+                            <option value="non-editable">Pedidos não editáveis</option>
+                        </select>
+                    </div>
+                    <table class="order-history-table">
+                        <thead>
+                            <tr>
+                                <th>Nº do Pedido</th>
+                                <th>Data/Hora</th>
+                                <th>Total</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="order-history-body">
+                            <!-- Os pedidos serão inseridos aqui dinamicamente via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="order-details-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Detalhes do Pedido</h2>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="order-details"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="editOrderModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Editar Pedido</h2>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="editOrderDetails">
+                        <p><strong>Número do Pedido:</strong> <span id="editOrderNumber"></span></p>
+                        <p><strong>Data:</strong> <span id="editOrderDate"></span></p>
+                        <h3>Itens:</h3>
+                        <ul id="editOrderItems"></ul>
+                        <p><strong>Subtotal:</strong> <span id="editOrderSubtotal"></span></p>
+                    </div>
+                    <form id="editOrderForm">
+                        <div class="form-group">
+                            <label for="editClientName">Nome do Cliente:</label>
+                            <input type="text" id="editClientName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDiscount">Desconto (%):</label>
+                            <input type="number" id="editDiscount" min="0" max="100" step="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPaymentMethod">Forma de Pagamento:</label>
+                            <select id="editPaymentMethod" required>
+                                <option value="credit">Cartão de Crédito</option>
+                                <option value="debit">Cartão de Débito</option>
+                                <option value="pix">PIX</option>
+                                <option value="cash">Dinheiro</option>
+                                <option value="food-voucher">Vale-alimentação</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Salvar Alterações</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="successModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div class="modal-header">
+                    <h2>Venda Finalizada com Sucesso!</h2>
+                </div>
+                <div class="success-icon">&#10004;</div>
+                <div class="order-details">
+                    <p><strong>Número do Pedido:</strong> <span id="successOrderNumber"></span></p>
+                    <p><strong>Total:</strong> <span id="successOrderTotal"></span></p>
+                    <p><strong>Desconto aplicado:</strong> <span id="successOrderDiscount"></span></p>
+                    <p><strong>Forma de Pagamento:</strong> <span id="successOrderPayment"></span></p>
+                </div>
+                <button id="closeSuccessModal" class="btn-primary">Fechar</button>
+            </div>
+        </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="./js/order.js"></script>
+
+</body>
+</html>
