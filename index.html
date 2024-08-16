@@ -7,11 +7,17 @@
     <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="login-container">
         <h1>Login - Sistema de PDV</h1>
         <form id="login-form">
-            <input type="text" id="username" placeholder="Usuário" required>
-            <input type="password" id="password" placeholder="Senha" required>
+            <div class="input-group">
+                <input type="text" id="username" name="username" required>
+                <label for="username">Usuário</label>
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" name="password" required>
+                <label for="password">Senha</label>
+            </div>
             <button type="submit">Entrar</button>
         </form>
     </div>

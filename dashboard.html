@@ -21,49 +21,58 @@
         </header>
 
         <main role="main">
-            <section id="sales-summary" class="dashboard-section">
+            <section id="sales-summary" class="section dashboard-section">
                 <h2>Resumo de Vendas</h2>
+                <div id="current-date" class="current-date"></div>
                 <div id="total-sales"></div>
                 <div id="sales-comparison"></div>
-                <div id="sales-chart"></div>
+                <div class="chart-container">
+                    <canvas id="sales-chart"></canvas>
+                </div>
             </section>
-
-            <section id="top-products" class="dashboard-section">
+    
+            <section id="top-products" class="section dashboard-section">
                 <h2>Produtos</h2>
                 <div id="top-5-products"></div>
                 <div id="low-stock-products"></div>
             </section>
-
-            <section id="customer-info" class="dashboard-section">
+    
+            <section id="customer-info" class="section dashboard-section">
                 <h2>Clientes</h2>
                 <div id="customers-served"></div>
                 <div id="top-customer"></div>
             </section>
-
-            <section id="payment-methods" class="dashboard-section">
+    
+            <section id="payment-methods" class="section dashboard-section">
                 <h2>Métodos de Pagamento</h2>
-                <div id="payment-distribution"></div>
-                <div id="average-purchase"></div>
+                <div class="payment-info">
+                    <div id="payment-period"></div>
+                    <div class="chart-container">
+                      <canvas id="payment-distribution-chart"></canvas>
+                    </div>
+                    <div id="average-purchase-table"></div>
+                  </div>
             </section>
-
-            <section id="sales-comparison" class="dashboard-section">
+    
+            <section id="sales-comparison" class="section dashboard-section">
                 <h2>Comparativos</h2>
                 <div id="daily-comparison"></div>
                 <div id="monthly-comparison"></div>
                 <div id="sales-goal-progress"></div>
             </section>
-
-            <section id="alerts" class="dashboard-section">
+    
+            <section id="alerts" class="section dashboard-section">
                 <h2>Alertas</h2>
                 <div id="out-of-stock"></div>
             </section>
-
-            <section id="predictions" class="dashboard-section">
+    
+            <section id="predictions" class="section dashboard-section">
                 <h2>Previsões</h2>
                 <div id="restock-suggestions"></div>
             </section>
         </main>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="./js/dashboard.js"></script>
 </body>

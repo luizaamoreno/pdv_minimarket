@@ -24,9 +24,10 @@
         <button id="view-order-history">Ver Histórico de Pedidos</button>
 
         <div id="customer-info">
-            <h2>Novo Pedido</h2>
-            <label for="nomeCliente">Nome do Cliente:</label>
-            <input type="text" id="nomeCliente" placeholder="Digite o nome do cliente">
+            <div id="customer-info">
+                <h2>Novo Pedido</h2>
+                <input type="text" id="nomeCliente" placeholder="Nome do Cliente" required>
+            </div>
         </div>
 
         <main>
@@ -80,24 +81,25 @@
                 <div class="modal-body">
                     <div class="search-filter">
                         <input type="text" id="search-orders" placeholder="Buscar pedidos...">
-                        <input type="date" id="filter-date" title="Filtrar por data">
+                        <input type="date" id="filter-date">
                         <select id="filter-orders">
                             <option value="all">Todos os pedidos</option>
                             <option value="editable">Pedidos editáveis</option>
                             <option value="non-editable">Pedidos não editáveis</option>
                         </select>
                     </div>
-                    <table class="order-history-table">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Nº do Pedido</th>
                                 <th>Data/Hora</th>
+                                <th>Cliente</th>
                                 <th>Total</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="order-history-body">
-                            <!-- Os pedidos serão inseridos aqui dinamicamente via JavaScript -->
+                            <!-- Os pedidos serão inseridos aqui dinamicamente -->
                         </tbody>
                     </table>
                 </div>
