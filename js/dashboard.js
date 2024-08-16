@@ -3,15 +3,34 @@ if (!localStorage.getItem('loggedIn')) {
     window.location.href = 'index.html';
 }
 
+// Função para atualizar a data atual
+function updateCurrentDate() {
+    const currentDate = new Date().toLocaleDateString('pt-BR', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    const dateElement = document.getElementById('current-date');
+    if (dateElement) {
+        dateElement.textContent = currentDate;
+    }
+}
+
 // Função para formatar valor em Real brasileiro
 function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
 // Função para formatar data no padrão brasileiro
-function formatDate(dateString) {
-    const options = { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' };
-    return new Date(dateString).toLocaleDateString('pt-BR', options);
+function formatDate(date) {
+    return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
+// Função para converter string de data DD/MM/AAAA para objeto Date
+function parseDate(dateString) {
+    const [day, month, year] = dateString.split('/').map(Number);
+    return new Date(year, month - 1, day);
 }
 
 // Função para obter a data atual no fuso horário de São Paulo
@@ -32,7 +51,7 @@ function getProducts() {
 // Função para calcular o total de vendas do dia
 function getTotalSalesForDay(date) {
     const sales = getSalesHistory();
-    return sales.filter(sale => formatDate(sale.date) === formatDate(date))
+    return sales.filter(sale => formatDate(new Date(sale.date)) === formatDate(date))
                 .reduce((total, sale) => total + sale.total, 0);
 }
 
@@ -41,7 +60,7 @@ function getSalesByHour(date) {
     const sales = getSalesHistory();
     const salesByHour = Array(24).fill(0);
     
-    sales.filter(sale => formatDate(sale.date) === formatDate(date))
+    sales.filter(sale => formatDate(new Date(sale.date)) === formatDate(date))
          .forEach(sale => {
              const hour = new Date(sale.date).getHours();
              salesByHour[hour] += sale.total;
@@ -90,7 +109,7 @@ function getCustomersServedToday() {
     const sales = getSalesHistory();
     const today = getCurrentDateBR();
     
-    return new Set(sales.filter(sale => formatDate(sale.date) === today)
+    return new Set(sales.filter(sale => formatDate(new Date(sale.date)) === today)
                         .map(sale => sale.client)).size;
 }
 
@@ -114,11 +133,14 @@ function getTopCustomer() {
 }
 
 // Função para obter a distribuição dos métodos de pagamento
-function getPaymentMethodDistribution() {
+function getPaymentMethodDistribution(startDate, endDate) {
     const sales = getSalesHistory();
     const distribution = {};
     
-    sales.forEach(sale => {
+    sales.filter(sale => {
+        const saleDate = parseDate(sale.date.split(' ')[0]);  // Pega apenas a parte da data
+        return saleDate >= startDate && saleDate <= endDate;
+    }).forEach(sale => {
         if (distribution[sale.paymentMethod]) {
             distribution[sale.paymentMethod]++;
         } else {
@@ -130,12 +152,15 @@ function getPaymentMethodDistribution() {
 }
 
 // Função para obter o valor médio de compra por método de pagamento
-function getAveragePurchaseByPaymentMethod() {
+function getAveragePurchaseByPaymentMethod(startDate, endDate) {
     const sales = getSalesHistory();
     const totalByMethod = {};
     const countByMethod = {};
     
-    sales.forEach(sale => {
+    sales.filter(sale => {
+        const saleDate = parseDate(sale.date.split(' ')[0]);  // Pega apenas a parte da data
+        return saleDate >= startDate && saleDate <= endDate;
+    }).forEach(sale => {
         if (totalByMethod[sale.paymentMethod]) {
             totalByMethod[sale.paymentMethod] += sale.total;
             countByMethod[sale.paymentMethod]++;
@@ -224,32 +249,50 @@ function updateSalesSummary() {
         <p>${formatCurrency(totalSales)}</p>
     `;
     
-    // Criar gráfico de vendas por hora
+    // Atualizar gráfico de vendas por hora
     const ctx = document.getElementById('sales-chart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: Array.from({length: 24}, (_, i) => `${i}h`),
-            datasets: [{
-                label: 'Vendas por Hora',
-                data: salesByHour,
-                backgroundColor: 'rgba(54, 162, 235, 0.5)'
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value, index, values) {
-                            return formatCurrency(value);
+    if (ctx) {
+        if (window.salesChart) {
+            window.salesChart.destroy();
+        }
+        
+        window.salesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 14}, (_, i) => `${i + 7}h`),
+                datasets: [{
+                    label: 'Vendas por Hora',
+                    data: salesByHour.slice(7, 21),
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
                         }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Vendas por Hora (07h - 20h)'
+                    },
+                    legend: {
+                        display: false
                     }
                 }
             }
-        }
-    });
+        });
+    } else {
+        console.error('Elemento canvas para o gráfico de vendas não encontrado');
+    }
 }
 
 // Função para atualizar os produtos mais vendidos e com estoque baixo
@@ -273,7 +316,6 @@ function updateTopProducts() {
     document.getElementById('low-stock-products').innerHTML = lowStockHtml;
 }
 
-
 // Função para atualizar as informações dos clientes
 function updateCustomerInfo() {
     const customersServed = getCustomersServedToday();
@@ -292,23 +334,84 @@ function updateCustomerInfo() {
 
 // Função para atualizar as informações dos métodos de pagamento
 function updatePaymentMethods() {
-    const distribution = getPaymentMethodDistribution();
-    const averagePurchase = getAveragePurchaseByPaymentMethod();
-    
-    let distributionHtml = '<h3>Distribuição dos Métodos de Pagamento</h3><ul class="payment-list">';
-    for (const method in distribution) {
-        distributionHtml += `<li><span>${method}</span><span>${distribution[method]} vendas</span></li>`;
+    const sales = getSalesHistory();
+    if (sales.length === 0) {
+        console.log('Não há vendas registradas.');
+        document.getElementById('payment-period').innerHTML = '<p>Não há dados disponíveis</p>';
+        document.getElementById('average-purchase-table').innerHTML = '<p>Não há dados disponíveis</p>';
+        return;
     }
-    distributionHtml += '</ul>';
+
+    const today = new Date();
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+    const distribution = getPaymentMethodDistribution(lastMonth, today);
+    const averagePurchase = getAveragePurchaseByPaymentMethod(lastMonth, today);
     
-    let averageHtml = '<h3>Valor Médio de Compra por Método</h3><ul class="payment-list">';
+    const startDateFormatted = formatDate(lastMonth);
+    const endDateFormatted = formatDate(today);
+    
+    // Atualizar o período no elemento HTML
+    document.getElementById('payment-period').innerHTML = `
+        <p>Período: ${startDateFormatted} - ${endDateFormatted}</p>
+    `;
+
+    // Criar gráfico de pizza para distribuição
+    const ctx = document.getElementById('payment-distribution-chart');
+    if (ctx) {
+        if (window.paymentChart) {
+            window.paymentChart.destroy();
+        }
+        window.paymentChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(distribution),
+                datasets: [{
+                    data: Object.values(distribution),
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Distribuição dos Métodos de Pagamento'
+                }
+            }
+        });
+    } else {
+        console.error('Elemento canvas para o gráfico de métodos de pagamento não encontrado');
+    }
+    
+    // Criar tabela para valor médio de compra
+    let tableHtml = `
+        <h3>Valor Médio de Compra por Método</h3>
+        <table class="payment-table">
+            <thead>
+                <tr>
+                    <th>Método de Pagamento</th>
+                    <th>Valor Médio</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
     for (const method in averagePurchase) {
-        averageHtml += `<li><span>${method}</span><span>${formatCurrency(averagePurchase[method])}</span></li>`;
+        tableHtml += `
+            <tr>
+                <td>${method}</td>
+                <td>${formatCurrency(averagePurchase[method])}</td>
+            </tr>
+        `;
     }
-    averageHtml += '</ul>';
     
-    document.getElementById('payment-distribution').innerHTML = distributionHtml;
-    document.getElementById('average-purchase').innerHTML = averageHtml;
+    tableHtml += `
+            </tbody>
+        </table>
+    `;
+    
+    document.getElementById('average-purchase-table').innerHTML = tableHtml;
 }
 
 // Função para atualizar os comparativos de vendas
@@ -320,7 +423,7 @@ function updateSalesComparison() {
         <ul class="comparison-list">
             <li><span>Hoje:</span><span>${formatCurrency(comparison.today)}</span></li>
             <li><span>Ontem:</span><span>${formatCurrency(comparison.yesterday)}</span></li>
-            <li><span>Mesmo dia na semana passada:</span><span>${formatCurrency(comparison.lastWeek)}</span></li>
+            <li><span>Semana passada:</span><span>${formatCurrency(comparison.lastWeek)}</span></li>
         </ul>
     `;
     
@@ -332,9 +435,7 @@ function updateSalesComparison() {
         </ul>
     `;
     
-    // Aqui você pode adicionar lógica para calcular o progresso em relação à meta mensal
-    // Por enquanto, vamos usar um valor fixo como exemplo
-    const salesGoal = 100000; // Meta mensal de R$100.000
+    let salesGoal = localStorage.getItem('salesGoal') ? parseFloat(localStorage.getItem('salesGoal')) : 100000;
     const progress = (comparison.thisMonth / salesGoal) * 100;
     
     const salesGoalProgress = `
@@ -343,11 +444,25 @@ function updateSalesComparison() {
             <div class="progress-bar-fill" style="width: ${progress}%;"></div>
         </div>
         <p>${progress.toFixed(2)}% da meta atingida</p>
+        <p>Meta atual: ${formatCurrency(salesGoal)}</p>
+        <form id="sales-goal-form">
+            <label for="new-sales-goal">Nova meta mensal:</label>
+            <input type="number" id="new-sales-goal" name="new-sales-goal" min="0" step="1000" required>
+            <button type="submit">Atualizar Meta</button>
+        </form>
     `;
     
     document.getElementById('daily-comparison').innerHTML = dailyComparison;
     document.getElementById('monthly-comparison').innerHTML = monthlyComparison;
     document.getElementById('sales-goal-progress').innerHTML = salesGoalProgress;
+    
+    // Adicionar evento de submissão do formulário
+    document.getElementById('sales-goal-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const newGoal = document.getElementById('new-sales-goal').value;
+        localStorage.setItem('salesGoal', newGoal);
+        updateSalesComparison(); // Atualizar a exibição
+    });
 }
 
 // Função para atualizar os alertas
@@ -358,7 +473,7 @@ function updateAlerts() {
     if (outOfStock.length > 0) {
         alertsHtml += '<ul class="alert-list">';
         outOfStock.forEach(product => {
-            alertsHtml += `<li class="alert">${product.name}</li>`;
+            alertsHtml += `<li class="alert alert-item">${product.name}</li>`;
         });
         alertsHtml += '</ul>';
     } else {
@@ -377,10 +492,12 @@ function updatePredictions() {
         suggestionsHtml += '<ul class="suggestion-list">';
         restockSuggestions.forEach(suggestion => {
             suggestionsHtml += `
-                <li class="suggestion">
+                <li class="suggestion suggestion-item">
                     <span>${suggestion.name}</span>
-                    <span>Estoque atual: ${suggestion.currentStock}</span>
-                    <span>Sugestão de reposição: ${suggestion.suggestedRestock}</span>
+                    <div class="stock-info">
+                        <span class="stock-label">Estoque atual: ${suggestion.currentStock}</span>
+                        <span class="stock-label">Sugestão de reposição: ${suggestion.suggestedRestock}</span>
+                    </div>
                 </li>
             `;
         });
@@ -392,16 +509,33 @@ function updatePredictions() {
     document.getElementById('restock-suggestions').innerHTML = suggestionsHtml;
 }
 
-// Função de logout
-document.getElementById('logout-button').addEventListener('click', function() {
-    localStorage.removeItem('loggedIn');
-    window.location.href = 'index.html';
-});
-
-// Inicialização
+// Inicialização do dashboard
 document.addEventListener('DOMContentLoaded', function() {
     updateDashboard();
     
     // Atualizar o dashboard a cada 5 minutos
     setInterval(updateDashboard, 300000);
+
+    // Atualizar a data atual
+    updateCurrentDate();
+
+    // Atualizar a data a cada minuto
+    setInterval(updateCurrentDate, 60000);
+
+    // Adicionar evento de logout ao botão
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', logout);
+    }
 });
+
+// Função de logout
+function logout() {
+    localStorage.removeItem('loggedIn');
+    window.location.href = 'index.html';
+}
+
+// Para fins de depuração, você pode manter estes logs
+console.log(JSON.parse(localStorage.getItem('salesHistory')));
+console.log(JSON.parse(localStorage.getItem('products')));
+console.log(localStorage.getItem('loggedIn'));

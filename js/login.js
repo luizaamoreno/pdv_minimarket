@@ -24,6 +24,20 @@ function login(event) {
 
 // Adiciona o event listener ao formulário de login
 document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('.input-group input');
+    
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.setAttribute('placeholder', ' ');
+        });
+        
+        input.addEventListener('blur', function() {
+            if (this.value === '') {
+                this.removeAttribute('placeholder');
+            }
+        });
+    });
+
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', login);
@@ -32,3 +46,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Verifica o login existente apenas uma vez quando a página carrega
     checkExistingLogin();
 });
+
+// Função para fazer logout (adicione esta função)
+function logout() {
+    localStorage.removeItem('loggedIn');
+    window.location.href = 'index.html';
+}
+
+// Torna a função logout globalmente acessível
+window.logout = logout;

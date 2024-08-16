@@ -16,12 +16,85 @@ const paymentMethods = {
     'food-voucher': 'Vale-alimentação'
 };
 
-// Função para formatar valor em Real brasileiro
+// Funções de utilidade para data
+
+function getCurrentDateTimeBrasilia() {
+    const now = new Date();
+    return now.toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+function formatDateTimeBR(dateString) {
+    console.log("Formatando data:", dateString);
+    if (!dateString) return 'Data inválida';
+    
+    let date;
+    if (typeof dateString === 'string') {
+        if (dateString.includes('/')) {
+            // Já está no formato brasileiro
+            const [day, month, year, time] = dateString.split(/[/, ]/);
+            date = new Date(year, month - 1, day);
+            if (time) {
+                const [hour, minute, second] = time.split(':');
+                date.setHours(hour, minute, second);
+            }
+        } else {
+            // Tenta parse padrão
+            date = new Date(dateString);
+        }
+    } else {
+        date = new Date(dateString);
+    }
+
+    if (isNaN(date.getTime())) {
+        console.error('Data inválida:', dateString);
+        return 'Data inválida';
+    }
+
+    return date.toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+function parseDateTimeBR(dateTimeString) {
+    if (!dateTimeString) return null;
+    const [datePart, timePart] = dateTimeString.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const [hour, minute] = timePart.split(':');
+    return new Date(year, month - 1, day, hour, minute);
+}
+
+function isSameDay(date1, date2) {
+    const d1 = typeof date1 === 'string' ? new Date(date1.split(',')[0].split('/').reverse().join('-')) : date1;
+    const d2 = typeof date2 === 'string' ? new Date(date2.split(',')[0].split('/').reverse().join('-')) : date2;
+    return d1.getDate() === d2.getDate() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getFullYear() === d2.getFullYear();
+}
+
+function isSameDate(date1, date2) {
+    return date1.getDate() === date2.getDate() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getFullYear() === date2.getFullYear();
+}
+
 function formatCurrency(value) {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Função para carregar produtos do localStorage
 function loadProducts() {
     const storedProducts = localStorage.getItem('products');
     if (storedProducts) {
@@ -31,30 +104,50 @@ function loadProducts() {
     }
 }
 
-// Função para formatar a data e hora:
-function formatDateTime(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-}
-
-// Função de migração de data
 function migrateDateFormat() {
     const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
     const updatedSalesHistory = salesHistory.map(order => {
         if (typeof order.date === 'string') {
-            const date = new Date(order.date);
-            order.date = formatDateTime(date);
+            const parsedDate = parseDateTimeBR(order.date);
+            if (parsedDate) {
+                order.date = formatDateTimeBR(parsedDate);
+            } else {
+                order.date = getCurrentDateTimeBrasilia();
+            }
+        } else if (order.date instanceof Date) {
+            order.date = formatDateTimeBR(order.date);
+        } else {
+            order.date = getCurrentDateTimeBrasilia();
         }
         return order;
     });
     localStorage.setItem('salesHistory', JSON.stringify(updatedSalesHistory));
 }
 
-// Função para atualizar o filtro de categorias
+function checkAndFixDates() {
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    let hasChanges = false;
+
+    salesHistory = salesHistory.map(sale => {
+        if (sale.date === 'Data inválida' || !sale.date) {
+            sale.date = new Date().toISOString();
+            hasChanges = true;
+        } else {
+            const formattedDate = formatDateTimeBR(sale.date);
+            if (formattedDate !== sale.date) {
+                sale.date = formattedDate;
+                hasChanges = true;
+            }
+        }
+        return sale;
+    });
+
+    if (hasChanges) {
+        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+        console.log('Datas no histórico de vendas foram corrigidas.');
+    }
+}
+
 function updateCategoryFilter() {
     categories = [...new Set(products.map(p => p.category))];
     const categorySelect = document.getElementById('category-select');
@@ -69,21 +162,16 @@ function updateCategoryFilter() {
     }
 }
 
-// Função para ordenar produtos alfabeticamente
 function sortProductsAlphabetically(products) {
     return products.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Função para atualizar a lista de produtos
 function updateProductList(category = '') {
     const list = document.getElementById('product-list');
     if (list) {
         list.innerHTML = '';
         
-        // Filtrar produtos por categoria
         let filteredProducts = category ? products.filter(p => p.category === category) : products;
-        
-        // Ordenar produtos alfabeticamente
         let sortedProducts = sortProductsAlphabetically(filteredProducts);
 
         sortedProducts.forEach(product => {
@@ -112,7 +200,6 @@ function updateProductList(category = '') {
     }
 }
 
-//Função para formatar quantidades
 function formatQuantity(value, unit) {
     if (unit === 'kg') {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
@@ -120,7 +207,14 @@ function formatQuantity(value, unit) {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-// Função para adicionar ao carrinho
+function addSaleToHistory(sale) {
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    sale.date = getCurrentDateTimeBrasilia();
+    salesHistory.push(sale);
+    localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+    console.log("Venda adicionada ao histórico:", sale);
+}
+
 function addToCart(productCode) {
     const product = products.find(p => p.code === productCode);
     if (!product) {
@@ -142,7 +236,7 @@ function addToCart(productCode) {
     }
 
     if (product.unit !== 'kg') {
-        quantity = Math.floor(quantity); // Arredonda para baixo para produtos não vendidos por peso
+        quantity = Math.floor(quantity);
     }
 
     if (quantity > product.quantity) {
@@ -159,17 +253,12 @@ function addToCart(productCode) {
 
     updateCartDisplay();
     saveCart();
-
-    // Atualizar a exibição do produto na lista
     updateProductList(document.getElementById('category-select')?.value);
-
-    // Resetar o campo de quantidade para o valor mínimo após adicionar ao carrinho
     quantityInput.value = product.unit === 'kg' ? '0,1' : '1';
 
     alert(`${formatQuantity(quantity, product.unit)} ${product.unit} de ${product.name} adicionado${quantity > 1 ? 's' : ''} ao carrinho.`);
 }
 
-// Função para atualizar a exibição do carrinho
 function updateCartDisplay() {
     const cartItems = document.getElementById('cart-items');
     const cartBadge = document.getElementById('cart-badge');
@@ -204,25 +293,20 @@ function updateCartDisplay() {
     }
 }
 
-// Função para remover do carrinho
 function removeFromCart(productCode) {
     const cartItemIndex = cart.findIndex(item => item.code === productCode);
     if (cartItemIndex > -1) {
-        // Removemos a linha que adicionava a quantidade de volta ao estoque
         cart.splice(cartItemIndex, 1);
         updateCartDisplay();
         saveCart();
-        // Não é necessário atualizar o localStorage dos produtos aqui
         updateProductList(document.getElementById('category-select')?.value);
     }
 }
 
-// Função para salvar o carrinho no localStorage
 function saveCart() {
     localStorage.setItem('cart', JSON.stringify(cart));
 }
 
-// Função para carregar o carrinho do localStorage
 function loadCart() {
     const storedCart = localStorage.getItem('cart');
     if (storedCart) {
@@ -231,17 +315,23 @@ function loadCart() {
     }
 }
 
-// Função para aplicar desconto
 function applyDiscount() {
     discountPercentage = parseFloat(document.getElementById('discount-percentage').value) || 0;
     updateCartDisplay();
 }
 
-// Função para finalizar a venda
 function finalizeSale() {
     const paymentMethod = document.getElementById('payment-method').value;
+    const nomeCliente = document.getElementById('nomeCliente').value.trim();
+
     if (!paymentMethod) {
         alert('Por favor, selecione um método de pagamento.');
+        return;
+    }
+
+    if (!nomeCliente) {
+        alert('Por favor, insira o nome do cliente.');
+        document.getElementById('nomeCliente').focus();
         return;
     }
 
@@ -273,17 +363,13 @@ function finalizeSale() {
         total: total,
         paymentMethod: paymentMethods[paymentMethod] || paymentMethod,
         change: change,
-        date: formatDateTime(new Date()),
-        client: document.getElementById('nomeCliente')?.value || 'Consumidor Final'
+        date: getCurrentDateTimeBrasilia(),
+        client: nomeCliente
     };
 
-    // Adicionar a venda ao histórico
     addSaleToHistory(orderDetails);
-
-    // Gerar o recibo
     generateReceipt(orderDetails);
 
-    // Atualizar o estoque
     cart.forEach(item => {
         const product = products.find(p => p.code === item.code);
         if (product) {
@@ -291,24 +377,19 @@ function finalizeSale() {
         }
     });
 
-    // Limpar o carrinho e atualizar a exibição
     cart = [];
     discountPercentage = 0;
     document.getElementById('discount-percentage').value = '0';
+    document.getElementById('nomeCliente').value = '';
     updateCartDisplay();
     saveCart();
     localStorage.setItem('products', JSON.stringify(products));
-
-    // Forçar a atualização da exibição dos produtos
     updateProductList(document.getElementById('category-select')?.value);
-
-    // Fechar o menu do carrinho
     toggleCart();
 
     showSuccessModal(orderNumber, total, discountPercentage, paymentMethods[paymentMethod]);
 }
 
-//Modal para Venda finalizada com sucesso:
 function showSuccessModal(orderNumber, total, discountPercentage, paymentMethod) {
     const modal = document.getElementById('successModal');
     const orderNumberSpan = document.getElementById('successOrderNumber');
@@ -323,7 +404,6 @@ function showSuccessModal(orderNumber, total, discountPercentage, paymentMethod)
 
     modal.style.display = 'block';
 
-    // Configurar os eventos de fechar o modal
     const closeBtn = modal.querySelector('.close');
     const closeModalBtn = document.getElementById('closeSuccessModal');
     
@@ -341,7 +421,6 @@ function showSuccessModal(orderNumber, total, discountPercentage, paymentMethod)
     }
 }
 
-// Função para gerar número de pedido sequencial
 function generateOrderNumber() {
     let lastOrderNumber = localStorage.getItem('lastOrderNumber') || 0;
     lastOrderNumber = parseInt(lastOrderNumber) + 1;
@@ -349,9 +428,7 @@ function generateOrderNumber() {
     return `PED${lastOrderNumber.toString().padStart(6, '0')}`;
 }
 
-// Função para gerar o recibo
 function generateReceipt(orderDetails) {
-    // Verifica se a biblioteca jsPDF está disponível
     if (typeof jspdf === 'undefined') {
         console.error('jsPDF não está carregado. Verifique se a biblioteca está incluída corretamente.');
         alert('Não foi possível gerar o recibo. Por favor, tente novamente mais tarde.');
@@ -367,7 +444,6 @@ function generateReceipt(orderDetails) {
     const width = doc.internal.pageSize.getWidth();
     let y = 10;
 
-    // Funções auxiliares
     function centerText(text, y) {
         doc.text(text, width / 2, y, { align: 'center' });
     }
@@ -467,26 +543,23 @@ function generateReceipt(orderDetails) {
     doc.save(`cupom_fiscal_${orderDetails.orderNumber}.pdf`);
 }
 
-// Função para adicionar uma venda ao histórico
 function addSaleToHistory(sale) {
     let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    sale.date = getCurrentDateTimeBrasilia();
     salesHistory.push(sale);
     localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
 }
 
-// Função para limpar o carrinho
 function clearCart() {
     if (cart.length === 0) {
         alert('O carrinho já está vazio.');
         return;
     }
 
-    // Confirmar com o usuário antes de limpar o carrinho
     if (!confirm('Tem certeza que deseja limpar o carrinho?')) {
         return;
     }
 
-    // Devolver itens ao estoque
     cart.forEach(item => {
         const product = products.find(p => p.code === item.code);
         if (product) {
@@ -494,7 +567,6 @@ function clearCart() {
         }
     });
 
-    // Limpar o carrinho
     cart = [];
     updateCartDisplay();
     saveCart();
@@ -504,7 +576,6 @@ function clearCart() {
     alert('Carrinho limpo com sucesso.');
 }
 
-// Função para alternar a visibilidade do carrinho
 function toggleCart() {
     const cartMenu = document.getElementById('cart-menu');
     if (cartMenu) {
@@ -512,7 +583,6 @@ function toggleCart() {
     }
 }
 
-// Função para mostrar detalhes do pedido
 function showOrderDetails(orderNumber) {
     const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
     const order = salesHistory.find(sale => sale.orderNumber === orderNumber);
@@ -567,164 +637,62 @@ function showOrderDetails(orderNumber) {
 
     detailsContainer.innerHTML = detailsHTML;
 
-    // Exibir o modal de detalhes
     const modal = document.getElementById('order-details-modal');
     modal.style.display = 'block';
 }
 
-// Função para fechar os detalhes do pedido
-function closeOrderDetails() {
-    const detailsContainer = document.getElementById('order-details');
-    if (detailsContainer) {
-        detailsContainer.style.display = 'none';
-    }
-}
-
-// Função para visualizar / ocultar o histórico de pedidos
 function viewOrderHistory() {
+    console.log("Visualizando histórico de pedidos");
+    checkAndFixDates();
     const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
-    const historyContainer = document.getElementById('order-history-body');
-    const searchInput = document.getElementById('search-orders');
-    const filterSelect = document.getElementById('filter-orders');
-    const filterDate = document.getElementById('filter-date');
+    console.log("Histórico de vendas:", salesHistory);
+    filterOrders(); // Isso irá chamar renderOrders com os filtros aplicados
     
-    if (!historyContainer) {
-        console.error('Elemento order-history-body não encontrado');
-        return;
-    }
-
-    function renderOrders(orders) {
-        historyContainer.innerHTML = '';
-        if (orders.length === 0) {
-            historyContainer.innerHTML = '<tr><td colspan="4">Nenhum pedido encontrado.</td></tr>';
-        } else {
-            orders.forEach((order) => {
-                const isToday = isSameDay(order.date);
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${order.orderNumber}</td>
-                    <td>${order.date}</td>
-                    <td>${formatCurrency(order.total)}</td>
-                    <td>
-                        <button class="btn-action" onclick="showOrderDetails('${order.orderNumber}')" title="Ver Detalhes">
-                            <i class="fas fa-eye"></i><span>Detalhes</span>
-                        </button>
-                        <button class="btn-action" onclick="editOrder('${order.orderNumber}')" ${isToday ? '' : 'disabled'} title="${isToday ? 'Alterar' : 'Não editável'}">
-                            <i class="fas fa-edit"></i><span>Alterar</span>
-                        </button>
-                        <button class="btn-action" onclick="deleteOrder('${order.orderNumber}')" ${isToday ? '' : 'disabled'} title="${isToday ? 'Excluir' : 'Não excluível'}">
-                            <i class="fas fa-trash"></i><span>Excluir</span>
-                        </button>
-                        <button class="btn-action" onclick="viewReceipt('${order.orderNumber}')" title="Visualizar Recibo">
-                            <i class="fas fa-file-alt"></i><span>Recibo</span>
-                        </button>
-                    </td>
-                `;
-                historyContainer.appendChild(row);
-            });
-        }
-    }
-
-    function filterOrders() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const filterValue = filterSelect.value;
-        const filterDateValue = filterDate.value;
-
-        let filteredOrders = salesHistory.filter(order => {
-            const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm) ||
-                                  order.client.toLowerCase().includes(searchTerm);
-            const matchesFilter = filterValue === 'all' || 
-                                  (filterValue === 'editable' && isSameDay(order.date)) ||
-                                  (filterValue === 'non-editable' && !isSameDay(order.date));
-            const matchesDate = !filterDateValue || isSameDate(order.date, filterDateValue);
-
-            return matchesSearch && matchesFilter && matchesDate;
-        });
-
-        renderOrders(filteredOrders);
-    }
-
-    // Event listeners para os filtros
-    searchInput.addEventListener('input', filterOrders);
-    filterSelect.addEventListener('change', filterOrders);
-    filterDate.addEventListener('change', filterOrders);
-
-    // Renderizar pedidos inicialmente
-    renderOrders(salesHistory);
-    
-    // Exibir o modal
     const modal = document.getElementById('history-modal');
     modal.style.display = 'block';
 }
 
-// Função para fechar o modal de histórico
+function renderOrders(orders) {
+    const historyContainer = document.getElementById('order-history-body');
+    historyContainer.innerHTML = '';
+    if (orders.length === 0) {
+        historyContainer.innerHTML = '<tr><td colspan="5">Nenhum pedido encontrado.</td></tr>';
+    } else {
+        const currentDate = getCurrentDateTimeBrasilia().split(',')[0].trim();
+        orders.forEach((order) => {
+            const orderDate = order.date.split(',')[0].trim();
+            const isToday = orderDate === currentDate;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${order.orderNumber}</td>
+                <td>${order.date}</td>
+                <td>${order.client}</td>
+                <td>${formatCurrency(order.total)}</td>
+                <td>
+                    <button class="btn-action" onclick="showOrderDetails('${order.orderNumber}')" title="Ver Detalhes">
+                        <i class="fas fa-eye"></i><span>Detalhes</span>
+                    </button>
+                    <button class="btn-action" onclick="editOrder('${order.orderNumber}')" ${isToday ? '' : 'disabled'} title="${isToday ? 'Alterar' : 'Não editável'}">
+                        <i class="fas fa-edit"></i><span>Alterar</span>
+                    </button>
+                    <button class="btn-action" onclick="confirmDeleteOrder('${order.orderNumber}')" ${isToday ? '' : 'disabled'} title="${isToday ? 'Excluir' : 'Não excluível'}">
+                        <i class="fas fa-trash"></i><span>Excluir</span>
+                    </button>
+                    <button class="btn-action" onclick="viewReceipt('${order.orderNumber}')" title="Visualizar Recibo">
+                        <i class="fas fa-file-alt"></i><span>Recibo</span>
+                    </button>
+                </td>
+            `;
+            historyContainer.appendChild(row);
+        });
+    }
+}
+
 function closeHistoryModal() {
     const modal = document.getElementById('history-modal');
     modal.style.display = 'none';
 }
 
-// Função para mostrar detalhes do pedido
-function showOrderDetails(orderNumber) {
-    const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
-    const order = salesHistory.find(sale => sale.orderNumber === orderNumber);
-
-    if (!order) {
-        alert('Pedido não encontrado');
-        return;
-    }
-
-    const detailsContainer = document.getElementById('order-details');
-    if (!detailsContainer) {
-        console.error('Elemento order-details não encontrado');
-        return;
-    }
-
-    let detailsHTML = `
-    <h2>Detalhes do Pedido ${order.orderNumber}</h2>
-    <div class="order-info">
-        <p><strong>Data:</strong> ${order.date}</p>
-        <p><strong>Cliente:</strong> ${order.client}</p>
-        <p><strong>Método de Pagamento:</strong> ${order.paymentMethod}</p>
-    </div>
-    <h3>Itens do Pedido:</h3>
-    <ul class="items-list">
-    `;
-
-    order.items.forEach(item => {
-        detailsHTML += `
-            <li>
-                <span class="item-name">${item.name}</span>
-                <span class="item-quantity">${formatQuantity(item.quantity, item.unit)} ${item.unit}</span>
-                <span class="item-price">${formatCurrency(item.price)}</span>
-                <span class="item-total">${formatCurrency(item.price * item.quantity)}</span>
-            </li>
-        `;
-    });
-
-    detailsHTML += `
-        </ul>
-        <div class="order-summary">
-            <p><strong>Subtotal:</strong> ${formatCurrency(order.subtotal)}</p>
-            <p><strong>Desconto:</strong> ${order.discountPercentage}%</p>
-            <p class="order-total"><strong>Total:</strong> ${formatCurrency(order.total)}</p>
-        </div>
-    `;
-
-    if (order.paymentMethod === 'Dinheiro' && order.change > 0) {
-        detailsHTML += `
-            <p><strong>Troco:</strong> ${formatCurrency(order.change)}</p>
-        `;
-    }
-
-    detailsContainer.innerHTML = detailsHTML;
-
-    // Exibir o modal de detalhes
-    const modal = document.getElementById('order-details-modal');
-    modal.style.display = 'block';
-}
-
-
-//Função visualizar recibo:
 function viewReceipt(orderNumber) {
     const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
     const order = salesHistory.find(sale => sale.orderNumber === orderNumber);
@@ -734,140 +702,9 @@ function viewReceipt(orderNumber) {
         return;
     }
 
-    const { jsPDF } = jspdf;
-    const doc = new jsPDF({
-        unit: 'mm',
-        format: [80, 150 + (order.items.length * 10)]
-    });
-
-    const width = doc.internal.pageSize.getWidth();
-    let y = 10;
-
-    // Funções auxiliares
-    function centerText(text, y) {
-        doc.text(text, width / 2, y, { align: 'center' });
-    }
-    
-    function leftText(text, y) {
-        doc.text(text, 5, y);
-    }
-    
-    function rightText(text, y) {
-        doc.text(text, width - 5, y, { align: 'right' });
-    }
-    
-    function line(y) {
-        doc.setLineWidth(0.1);
-        doc.line(5, y, width - 5, y);
-    }
-
-    // Cabeçalho
-    doc.setFontSize(12);
-    centerText("MINI MERCADINHOS", y);
-    y += 5;
-    doc.setFontSize(10);
-    centerText("CNPJ: 00.000.000/0001-00", y);
-    y += 5;
-    centerText("Rua Exemplo, 123 - Cidade - Estado", y);
-    y += 5;
-    centerText("CEP: 12345-678 - Tel: (11) 1234-5678", y);
-    y += 7;
-
-    line(y);
-    y += 5;
-
-    // Detalhes do pedido
-    doc.setFontSize(10);
-    leftText(`Pedido: ${order.orderNumber}`, y);
-    y += 5;
-    leftText(`Data/Hora: ${order.date}`, y);
-    y += 5;
-    leftText(`Cliente: ${order.client}`, y);
-    y += 5;
-    leftText(`Atendente: ${localStorage.getItem('loggedIn')}`, y);
-    y += 7;
-
-    line(y);
-    y += 5;
-
-    // Itens do pedido
-    doc.setFontSize(10);
-    centerText("RESUMO DO PEDIDO", y);
-    y += 5;
-
-    order.items.forEach((item) => {
-        y += 5;
-        leftText(`${item.name}`, y);
-        y += 4;
-        leftText(`${formatQuantity(item.quantity, item.unit)} ${item.unit} x ${formatCurrency(item.price)}`, y);
-        rightText(formatCurrency(item.quantity * item.price), y);
-    });
-
-    y += 7;
-    line(y);
-    y += 7;
-
-    // Total e pagamento
-    doc.setFontSize(10);
-    leftText("Subtotal:", y);
-    rightText(formatCurrency(order.subtotal), y);
-    y += 5;
-    leftText(`Desconto (${order.discountPercentage.toLocaleString('pt-BR')}%):`, y);
-    rightText(formatCurrency(order.subtotal * order.discountPercentage / 100), y);
-    y += 5;
-    doc.setFontSize(12);
-    leftText("TOTAL:", y);
-    rightText(formatCurrency(order.total), y);
-    y += 7;
-
-    doc.setFontSize(10);
-    leftText(`Forma de Pagamento: ${order.paymentMethod}`, y);
-    y += 5;
-    if (order.paymentMethod === 'Dinheiro' && order.change > 0) {
-        leftText("Troco:", y);
-        rightText(formatCurrency(order.change), y);
-        y += 5;
-    }
-
-    y += 7;
-    line(y);
-    y += 7;
-
-    // Mensagem final
-    doc.setFontSize(8);
-    centerText("Obrigado pela preferência!", y);
-    y += 4;
-    centerText("Volte sempre!", y);
-
-    // Abrir o PDF em uma nova janela
-    const pdfData = doc.output('datauristring');
-    const newWindow = window.open();
-    newWindow.document.write(`<iframe width='100%' height='100%' src='${pdfData}'></iframe>`);
+    generateReceipt(order);
 }
 
-//Função para verificar se é o mesmo dia
-function isSameDay(dateTimeString) {
-    const [dateString, ] = dateTimeString.split(' ');
-    const [orderDay, orderMonth, orderYear] = dateString.split('/').map(Number);
-    const today = new Date();
-    
-    return orderDay === today.getDate() &&
-           orderMonth === (today.getMonth() + 1) &&
-           orderYear === today.getFullYear();
-}
-
-// Função auxiliar para comparar datas
-function isSameDate(orderDateString, filterDateString) {
-    const [orderDatePart, ] = orderDateString.split(' ');
-    const [orderDay, orderMonth, orderYear] = orderDatePart.split('/').map(Number);
-    const [filterYear, filterMonth, filterDay] = filterDateString.split('-').map(Number);
-
-    return orderDay === filterDay &&
-           orderMonth === filterMonth &&
-           orderYear === filterYear;
-}
-
-//Função para editar pedido:
 function editOrder(orderNumber) {
     const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
     const order = salesHistory.find(order => order.orderNumber === orderNumber);
@@ -877,12 +714,12 @@ function editOrder(orderNumber) {
         return;
     }
 
-    if (!isSameDay(order.date)) {
+    const currentDate = getCurrentDateTimeBrasilia();
+    if (!isSameDay(order.date, currentDate)) {
         alert('Não é possível editar pedidos de dias anteriores.');
         return;
     }
 
-    // Preencher os detalhes do pedido no modal
     document.getElementById('editOrderNumber').textContent = order.orderNumber;
     document.getElementById('editOrderDate').textContent = order.date;
     
@@ -895,59 +732,55 @@ function editOrder(orderNumber) {
     });
     
     document.getElementById('editOrderSubtotal').textContent = formatCurrency(order.subtotal);
-
-    // Preencher os campos editáveis
     document.getElementById('editClientName').value = order.client;
     document.getElementById('editDiscount').value = order.discountPercentage;
     document.getElementById('editPaymentMethod').value = Object.keys(paymentMethods).find(key => paymentMethods[key] === order.paymentMethod) || '';
 
-    // Exibir o modal
     document.getElementById('editOrderModal').style.display = 'block';
 
-    // Configurar o evento de submit do formulário
     document.getElementById('editOrderForm').onsubmit = function(e) {
         e.preventDefault();
         saveOrderChanges(order, salesHistory);
     };
 }
 
-//Função para salvar alterações do pedido:
 function saveOrderChanges(order, salesHistory) {
     const newClient = document.getElementById('editClientName').value;
     const newDiscount = parseFloat(document.getElementById('editDiscount').value);
     const newPaymentMethod = document.getElementById('editPaymentMethod').value;
 
     if (newClient && !isNaN(newDiscount) && newPaymentMethod) {
-        // Recalcular o total com o novo desconto
         const subtotal = order.subtotal;
         const discountAmount = subtotal * (newDiscount / 100);
         const newTotal = subtotal - discountAmount;
 
-        // Atualizar o pedido
         order.client = newClient;
         order.discountPercentage = newDiscount;
         order.total = newTotal;
         order.paymentMethod = paymentMethods[newPaymentMethod];
 
-        // Salvar as alterações
         localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
 
         alert('Pedido atualizado com sucesso!');
         document.getElementById('editOrderModal').style.display = 'none';
-        viewOrderHistory(); // Atualizar a exibição do histórico
+        viewOrderHistory();
     } else {
         alert('Por favor, preencha todos os campos corretamente.');
     }
 }
 
-//Função para fechar o modal:
 function closeEditModal() {
     document.getElementById('editOrderModal').style.display = 'none';
 }
 
-//Função para excluir pedido:
+function confirmDeleteOrder(orderNumber) {
+    if (confirm('Tem certeza que deseja excluir este pedido?')) {
+        deleteOrder(orderNumber);
+    }
+}
+
 function deleteOrder(orderNumber) {
-    const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
     const orderIndex = salesHistory.findIndex(order => order.orderNumber === orderNumber);
 
     if (orderIndex === -1) {
@@ -956,17 +789,13 @@ function deleteOrder(orderNumber) {
     }
 
     const order = salesHistory[orderIndex];
+    const currentDate = getCurrentDateTimeBrasilia();
 
-    if (!isSameDay(order.date)) {
+    if (!isSameDay(order.date, currentDate)) {
         alert('Não é possível excluir pedidos de dias anteriores.');
         return;
     }
 
-    if (!confirm(`Tem certeza que deseja excluir o pedido ${orderNumber}?`)) {
-        return;
-    }
-
-    // Devolver os itens ao estoque
     order.items.forEach(item => {
         const product = products.find(p => p.code === item.code);
         if (product) {
@@ -974,24 +803,90 @@ function deleteOrder(orderNumber) {
         }
     });
 
-    // Remover o pedido do histórico
     salesHistory.splice(orderIndex, 1);
 
-    // Salvar as alterações
     localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
     localStorage.setItem('products', JSON.stringify(products));
 
     alert('Pedido excluído com sucesso!');
-    viewOrderHistory(); // Atualizar a exibição do histórico
-    updateProductList(); // Atualizar a lista de produtos
+    viewOrderHistory();
+    updateProductList();
+}
+
+function checkAndFixDates() {
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    let hasChanges = false;
+
+    salesHistory = salesHistory.map(sale => {
+        if (!sale.date) {
+            sale.date = getCurrentDateTimeBrasilia();
+            hasChanges = true;
+        }
+        return sale;
+    });
+
+    if (hasChanges) {
+        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+        console.log('Datas no histórico de vendas foram corrigidas.');
+    }
+}
+
+function filterOrders() {
+    console.log("Função filterOrders chamada");
+    const searchTerm = document.getElementById('search-orders').value.toLowerCase();
+    const filterValue = document.getElementById('filter-orders').value;
+    const filterDateValue = document.getElementById('filter-date').value;
+    console.log("Valores dos filtros:", { searchTerm, filterValue, filterDateValue });
+
+    const salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    console.log("Histórico de vendas:", salesHistory);
+
+    const currentDate = getCurrentDateTimeBrasilia().split(',')[0].trim();
+    console.log("Data atual:", currentDate);
+    
+    let filteredOrders = salesHistory.filter(order => {
+        const orderDate = order.date.split(',')[0].trim();
+        // Converter a data do filtro para o formato DD/MM/AAAA
+        const formattedFilterDate = filterDateValue ? formatDateForComparison(filterDateValue) : '';
+        console.log("Comparando datas:", { orderDate, formattedFilterDate });
+        
+        const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm) ||
+                              order.client.toLowerCase().includes(searchTerm);
+        const matchesFilter = filterValue === 'all' || 
+                              (filterValue === 'editable' && orderDate === currentDate) ||
+                              (filterValue === 'non-editable' && orderDate !== currentDate);
+        const matchesDate = !filterDateValue || orderDate === formattedFilterDate;
+
+        console.log("Resultados da filtragem:", { matchesSearch, matchesFilter, matchesDate });
+        return matchesSearch && matchesFilter && matchesDate;
+    });
+
+    console.log("Pedidos filtrados:", filteredOrders);
+    renderOrders(filteredOrders);
+}
+
+// Função auxiliar para formatar a data do filtro
+function formatDateForComparison(dateString) {
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
 }
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Executar a migração de data (será executada apenas uma vez)
-    migrateDateFormat();
-    localStorage.setItem('dateMigrationDone', 'true');
+    const filterDate = document.getElementById('filter-date');
+    if (filterDate) {
+        filterDate.addEventListener('change', function() {
+            console.log("Evento de mudança de data detectado");
+            filterOrders();
+        });
+    }
 
+    // Adicione este log para verificar se o elemento existe
+    console.log("Elemento do filtro de data:", filterDate);
+
+
+    checkAndFixDates();
+        
     const paymentMethod = document.getElementById('payment-method');
     if (paymentMethod) {
         paymentMethod.addEventListener('change', function() {
@@ -1001,7 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
+        
     const finishPayment = document.getElementById('finish-payment');
     if (finishPayment) {
         finishPayment.addEventListener('click', finalizeSale);
@@ -1047,24 +942,45 @@ document.addEventListener('DOMContentLoaded', function() {
         viewOrderHistoryButton.addEventListener('click', viewOrderHistory);
     }
 
-    // Adicionar event listeners para fechar os modais
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        const closeBtn = modal.querySelector('.close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-        }
-        
-        window.addEventListener('click', (event) => {
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
+    const searchInput = document.getElementById('search-orders');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterOrders);
+    }
+
+    const filterSelect = document.getElementById('filter-orders');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', filterOrders);
+    }
+
+    // Adicionar botão para voltar ao dashboard
+    const dashboardButton = document.createElement('button');
+    dashboardButton.textContent = 'Voltar ao Dashboard';
+    dashboardButton.addEventListener('click', () => {
+        window.location.href = 'dashboard.html';
+    });
+    document.querySelector('.container').appendChild(dashboardButton);
+
+    // Fechar modais
+    document.querySelectorAll('.modal .close').forEach(closeButton => {
+        closeButton.addEventListener('click', () => {
+            closeButton.closest('.modal').style.display = 'none';
         });
+    });
+
+    // Fechar modal se clicar fora dele
+    window.addEventListener('click', function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
     });
 
     // Carregar produtos e carrinho ao iniciar a página
     loadProducts();
     loadCart();
 });
+
+// Para fins de depuração, você pode manter estes logs
+console.log(JSON.parse(localStorage.getItem('salesHistory')));
+console.log(JSON.parse(localStorage.getItem('products')));
+console.log(localStorage.getItem('loggedIn'));
+checkAndFixDates();
