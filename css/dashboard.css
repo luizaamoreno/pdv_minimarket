@@ -40,7 +40,9 @@
 }
 
 .chart-container {
+    position: relative;
     height: 300px;
+    width: 100%;
     margin-top: 20px;
 }
 
@@ -65,7 +67,7 @@
     border-radius: 10px;
     height: 20px;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 15px;
 }
 
 .progress-bar-fill {
@@ -76,20 +78,129 @@
     transition: width 0.5s ease-in-out;
 }
 
+.alert, .suggestion {
+    list-style-type: none;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
+}
+
+.alert-list, .suggestion-list {
+    padding: 0;
+}
+
+.alert-item, .suggestion-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .alert {
     background-color: #f8d7da;
     color: #721c24;
-    padding: 10px;
-    border-radius: var(--border-radius);
-    margin-bottom: 10px;
+    border-left: 5px solid #f5c6cb;
 }
 
 .suggestion {
     background-color: #d4edda;
     color: #155724;
-    padding: 10px;
+    border-left: 5px solid #c3e6cb;
+}
+
+.suggestion-item span {
+    margin-right: 10px;
+}
+
+.stock-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.stock-label {
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+.payment-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.payment-info .chart-container {
+    width: 50%;
+    height: 300px;
+}
+
+#average-purchase-table {
+    width: 60%;
+}
+
+.payment-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.payment-table th, .payment-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.payment-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.payment-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.payment-table th {
+    background-color: #f2f2f2;
+}
+
+.current-date {
+    font-size: 1.2em;
+    color: var(--text-color);
+    margin-bottom: 20px;
+    text-align: right;
+}
+
+.comparisons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.comparison-card {
+    background-color: var(--card-background);
     border-radius: var(--border-radius);
-    margin-bottom: 10px;
+    box-shadow: var(--box-shadow);
+    padding: 20px;
+}
+
+.comparison-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+
+.comparison-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.comparison-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.comparison-list li:last-child {
+    border-bottom: none;
 }
 
 @media (max-width: 768px) {
@@ -99,5 +210,18 @@
 
     .chart-container {
         height: 200px;
+    }
+
+    .payment-info {
+        flex-direction: column;
+    }
+    
+    .chart-container, #average-purchase-table {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .comparisons-grid {
+        grid-template-columns: 1fr;
     }
 }

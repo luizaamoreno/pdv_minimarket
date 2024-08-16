@@ -23,6 +23,10 @@
     text-align: center;
 }
 
+#history-modal .modal-content{
+    max-width: 900px;
+}
+
 .modal-header {
     margin-bottom: 20px;
     padding-bottom: 10px;
@@ -327,6 +331,100 @@
     text-align: center;
 }
 
+#history-modal .modal-content {
+    max-width: 90%;
+    width: 1000px;
+    padding: 30px;
+}
+
+#history-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+#history-modal .modal-header h2 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 24px;
+}
+
+#history-modal .search-filter {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+#history-modal .search-filter input,
+#history-modal .search-filter select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#history-modal .search-filter input[type="text"] {
+    flex-grow: 2;
+}
+
+#history-modal .search-filter input[type="date"] {
+    flex-grow: 1;
+}
+
+#history-modal .search-filter select {
+    flex-grow: 1;
+}
+
+#history-modal table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+#history-modal th,
+#history-modal td {
+    padding: 15px;
+    text-align: left;
+    border: none;
+}
+
+#history-modal th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+}
+
+#history-modal tr {
+    background-color: #f8f9fa;
+    transition: background-color 0.3s ease;
+}
+
+#history-modal tr:hover {
+    background-color: #e9ecef;
+}
+
+#history-modal .btn-action {
+    padding: 8px 12px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#history-modal .btn-action:hover {
+    opacity: 0.8;
+}
+
+#history-modal .btn-action:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 .success-icon {
     font-size: 40px;
     margin: 20px 0;
@@ -392,5 +490,32 @@
 
     #editOrderModal .modal-content {
         width: 95%;
+    }
+
+    #history-modal .modal-content {
+        width: 95%;
+        padding: 15px;
+    }
+
+    #history-modal .search-filter {
+        flex-direction: column;
+    }
+
+    #history-modal .search-filter input,
+    #history-modal .search-filter select {
+        width: 100%;
+    }
+
+    #history-modal table {
+        font-size: 14px;
+    }
+
+    #history-modal .btn-action {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    #history-modal .btn-action span {
+        display: none;
     }
 }
